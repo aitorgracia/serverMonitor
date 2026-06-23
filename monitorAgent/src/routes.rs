@@ -18,12 +18,14 @@ use crate::metrics::collect;
 
 // --- AUTH MIDDLEWARE ---
 
+type ApiError = (StatusCode, Json<serde_json::Value>);
+
 async fn auth_middleware(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     request: Request<axum::body::Body>,
     next: Next,
-) -> Result<Response, StatusCode> {
+) -> Result<Response, ApiError> {
     let expected = format!("Bearer {}", state.config.api_key);
     let provided  = headers
         .get("Authorization")
@@ -31,7 +33,10 @@ async fn auth_middleware(
         .unwrap_or("");
 
     if provided != expected {
-        return Err(StatusCode::UNAUTHORIZED);
+        return Err((
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({"error": "Unauthorized"})),
+        ));
     }
 
     Ok(next.run(request).await)
@@ -59,7 +64,7 @@ struct HistoryQuery {
 async fn get_history_handler(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HistoryQuery>,
-) -> Result<Json<Vec<SnapshotRow>>, StatusCode> {
+) -> Result<Json<Vec<SnapshotRow>>, ApiError> {
     let hours    = params.hours.unwrap_or(6).min(state.config.history_hours);
     let since_ts = Utc::now().timestamp() - (hours as i64 * 3600);
 
@@ -68,7 +73,10 @@ async fn get_history_handler(
         Ok(rows) => Ok(Json(rows)),
         Err(e)   => {
             tracing::error!("Error leyendo historial: {}", e);
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": format!("Error interno: {}", e)})),
+            ))
         }
     }
 }
@@ -76,12 +84,15 @@ async fn get_history_handler(
 async fn service_start(
     State(state): State<Arc<AppState>>,
     Path(name): Path<String>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     match crate::metrics::start_service(&state.config, &name) {
         Ok(msg) => Ok(Json(serde_json::json!({"status": "ok", "message": msg}))),
         Err(e) => {
             tracing::error!("Error iniciando servicio: {}", e);
-            Err(StatusCode::BAD_REQUEST)
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e})),
+            ))
         }
     }
 }
@@ -89,12 +100,15 @@ async fn service_start(
 async fn service_stop(
     State(state): State<Arc<AppState>>,
     Path(name): Path<String>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<Json<serde_json::Value>, ApiError> {
     match crate::metrics::stop_service(&state.config, &name) {
         Ok(msg) => Ok(Json(serde_json::json!({"status": "ok", "message": msg}))),
         Err(e) => {
             tracing::error!("Error deteniendo servicio: {}", e);
-            Err(StatusCode::BAD_REQUEST)
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": e})),
+            ))
         }
     }
 }

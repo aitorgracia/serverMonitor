@@ -61,7 +61,10 @@ impl DashboardApp {
         self.runtime.spawn(async move {
             match client.current().await {
                 Ok(snap) => { *current.lock().unwrap() = Some(snap); }
-                Err(e)   => { *error.lock().unwrap() = Some(e.to_string()); }
+                Err(e)   => {
+                    eprintln!("[dashboard] Error en fetch_current: {}", e);
+                    *error.lock().unwrap() = Some(e);
+                }
             }
         });
     }
@@ -75,7 +78,10 @@ impl DashboardApp {
         self.runtime.spawn(async move {
             match client.history(hours).await {
                 Ok(snaps) => { *history.lock().unwrap() = snaps; }
-                Err(e)    => { *error.lock().unwrap() = Some(e.to_string()); }
+                Err(e)    => {
+                    eprintln!("[dashboard] Error en fetch_history: {}", e);
+                    *error.lock().unwrap() = Some(e);
+                }
             }
         });
     }
@@ -239,7 +245,8 @@ impl eframe::App for DashboardApp {
                     ServiceAction::Stop  => client.stop_service(&action.name).await,
                 };
                 if let Err(e) = result {
-                    *error.lock().unwrap() = Some(e.to_string());
+                    eprintln!("[dashboard] Error en acción servicio: {}", e);
+                    *error.lock().unwrap() = Some(e);
                 }
             });
         }
