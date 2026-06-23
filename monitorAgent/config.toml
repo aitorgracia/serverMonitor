@@ -1,0 +1,20 @@
+poll_interval_secs = 30
+history_hours = 24
+api_key = "4d6c100643dfe175fa22a9aacf0edf04aca80449901c0781fe0a6ca9efa35ab2"
+
+[[services]]
+name = "cobble.service"
+display_name = "Cobblestone"
+
+[[services]]
+name = "ts.service"
+display_name = "TeamSpeak"
+
+[[services]]
+name = "botDieta.service"
+display_name = "Bot Dieta Telegram"
+
+# Añade más servicios sin recompilar:
+# [[services]]
+# name = "mi-servicio.service"
+# display_name = "Mi Servicio"

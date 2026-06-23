@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "monitor-agent",
-    "monitor-dashboard",
+    "monitorAgent",
+    "monitorDashboard",
 ]
 resolver = "2"
