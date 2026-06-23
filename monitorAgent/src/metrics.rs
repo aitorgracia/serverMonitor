@@ -49,6 +49,38 @@ pub fn collect(config: &crate::config::Config) -> (f32, f32, f32, Vec<ServiceRow
     (cpu_total, ram_used_gb, ram_total_gb, services)
 }
 
+pub fn start_service(config: &crate::config::Config, name: &str) -> Result<String, String> {
+    if !config.services.iter().any(|s| s.name == name) {
+        return Err(format!("Servicio '{}' no está en la configuración", name));
+    }
+    let output = std::process::Command::new("sudo")
+        .args(["systemctl", "start", name])
+        .output()
+        .map_err(|e| format!("Error ejecutando systemctl: {}", e))?;
+    if output.status.success() {
+        Ok(format!("Servicio '{}' iniciado", name))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Error al iniciar '{}': {}", name, stderr))
+    }
+}
+
+pub fn stop_service(config: &crate::config::Config, name: &str) -> Result<String, String> {
+    if !config.services.iter().any(|s| s.name == name) {
+        return Err(format!("Servicio '{}' no está en la configuración", name));
+    }
+    let output = std::process::Command::new("sudo")
+        .args(["systemctl", "stop", name])
+        .output()
+        .map_err(|e| format!("Error ejecutando systemctl: {}", e))?;
+    if output.status.success() {
+        Ok(format!("Servicio '{}' detenido", name))
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Error al detener '{}': {}", name, stderr))
+    }
+}
+
 pub async fn snapshot_loop(state: Arc<AppState>, interval_secs: u64) {
     loop {
         let (cpu_total, ram_used_gb, ram_total_gb, services) = collect(&state.config);

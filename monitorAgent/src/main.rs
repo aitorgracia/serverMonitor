@@ -4,7 +4,7 @@ mod metrics;
 mod routes;
 
 use std::sync::Arc;
-use axum::{Router, middleware};
+use axum::{Router};
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber;

@@ -125,6 +125,5 @@ history_hours = 6
 
 ## Estado actual (pendiente)
 
-- [ ] Endpoint POST /services/{name}/start y /services/{name}/stop en el agente
-- [ ] Botones start/stop en la tabla de servicios del dashboard
-- [ ] sudoers configurado para `ubuntu` solo en los servicios del config.toml
+- [x] Endpoint POST /services/{name}/start y /services/{name}/stop en el agente
+- [x] Botones start/stop en la tabla de servicios del dashboard

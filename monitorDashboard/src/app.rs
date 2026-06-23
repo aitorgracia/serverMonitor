@@ -6,6 +6,16 @@ use chrono::{DateTime, Utc};
 
 use crate::client::{AgentClient, Snapshot};
 
+enum ServiceAction {
+    Start,
+    Stop,
+}
+
+struct PendingAction {
+    name:   String,
+    action: ServiceAction,
+}
+
 pub struct DashboardApp {
     client:          Arc<AgentClient>,
     runtime:         tokio::runtime::Handle,
@@ -13,6 +23,7 @@ pub struct DashboardApp {
     current:         Arc<Mutex<Option<Snapshot>>>,
     history:         Arc<Mutex<Vec<Snapshot>>>,
     error:           Arc<Mutex<Option<String>>>,
+    pending_action:  Option<PendingAction>,
 
     last_refresh:    Instant,
     refresh_secs:    u64,
@@ -32,6 +43,7 @@ impl DashboardApp {
             current:       Arc::new(Mutex::new(None)),
             history:       Arc::new(Mutex::new(Vec::new())),
             error:         Arc::new(Mutex::new(None)),
+            pending_action: None,
             last_refresh:  Instant::now() - Duration::from_secs(refresh_secs + 1),
             refresh_secs,
             history_hours,
@@ -125,18 +137,19 @@ impl DashboardApp {
         });
     }
 
-    fn render_services(&self, ui: &mut Ui, snap: &Snapshot) {
+    fn render_services(&mut self, ui: &mut Ui, snap: &Snapshot) {
         ui.add_space(8.0);
         ui.label(RichText::new("Servicios").heading());
         ui.add_space(4.0);
 
         egui::Grid::new("services_grid")
-            .num_columns(4)
+            .num_columns(5)
             .striped(true)
             .spacing([16.0, 6.0])
             .show(ui, |ui| {
                 ui.label(RichText::new("Servicio").strong());
                 ui.label(RichText::new("Estado").strong());
+                ui.label(RichText::new("Acción").strong());
                 ui.label(RichText::new("CPU").strong());
                 ui.label(RichText::new("RAM").strong());
                 ui.end_row();
@@ -145,8 +158,20 @@ impl DashboardApp {
                     ui.label(&svc.display_name);
                     if svc.running {
                         ui.label(RichText::new("Activo").color(Color32::GREEN));
+                        if ui.button("Detener").clicked() {
+                            self.pending_action = Some(PendingAction {
+                                name: svc.name.clone(),
+                                action: ServiceAction::Stop,
+                            });
+                        }
                     } else {
                         ui.label(RichText::new("Apagado").color(Color32::RED));
+                        if ui.button("Iniciar").clicked() {
+                            self.pending_action = Some(PendingAction {
+                                name: svc.name.clone(),
+                                action: ServiceAction::Start,
+                            });
+                        }
                     }
                     ui.label(format!("{:.1}%", svc.cpu_usage));
                     ui.label(format!("{} MB", svc.memory_mb));
@@ -205,6 +230,20 @@ impl DashboardApp {
 
 impl eframe::App for DashboardApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        if let Some(action) = self.pending_action.take() {
+            let client = self.client.clone();
+            let error  = self.error.clone();
+            self.runtime.spawn(async move {
+                let result = match action.action {
+                    ServiceAction::Start => client.start_service(&action.name).await,
+                    ServiceAction::Stop  => client.stop_service(&action.name).await,
+                };
+                if let Err(e) = result {
+                    *error.lock().unwrap() = Some(e.to_string());
+                }
+            });
+        }
+
         if self.last_refresh.elapsed() >= Duration::from_secs(self.refresh_secs) {
             self.fetch_current();
             self.last_refresh = Instant::now();

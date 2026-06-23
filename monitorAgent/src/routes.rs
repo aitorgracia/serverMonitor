@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use axum::{
     Router,
-    routing::get,
-    extract::{State, Query},
+    routing::{get, post},
+    extract::{State, Query, Path},
     http::{StatusCode, HeaderMap},
     Json,
     middleware::{self, Next},
@@ -73,6 +73,32 @@ async fn get_history_handler(
     }
 }
 
+async fn service_start(
+    State(state): State<Arc<AppState>>,
+    Path(name): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    match crate::metrics::start_service(&state.config, &name) {
+        Ok(msg) => Ok(Json(serde_json::json!({"status": "ok", "message": msg}))),
+        Err(e) => {
+            tracing::error!("Error iniciando servicio: {}", e);
+            Err(StatusCode::BAD_REQUEST)
+        }
+    }
+}
+
+async fn service_stop(
+    State(state): State<Arc<AppState>>,
+    Path(name): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    match crate::metrics::stop_service(&state.config, &name) {
+        Ok(msg) => Ok(Json(serde_json::json!({"status": "ok", "message": msg}))),
+        Err(e) => {
+            tracing::error!("Error deteniendo servicio: {}", e);
+            Err(StatusCode::BAD_REQUEST)
+        }
+    }
+}
+
 async fn health() -> &'static str {
     "ok"
 }
@@ -81,8 +107,10 @@ async fn health() -> &'static str {
 
 pub fn router(state: Arc<AppState>) -> Router {
     let protected = Router::new()
-        .route("/metrics",         get(get_current))
-        .route("/metrics/history", get(get_history_handler))
+        .route("/metrics",              get(get_current))
+        .route("/metrics/history",      get(get_history_handler))
+        .route("/services/{name}/start", post(service_start))
+        .route("/services/{name}/stop",  post(service_stop))
         .layer(middleware::from_fn_with_state(state.clone(), auth_middleware));
 
     Router::new()

@@ -94,3 +94,5 @@ display_name = "Bot Dieta"
 | `GET /health` | No | Estado del agente |
 | `GET /metrics` | Bearer token | Snapshot actual |
 | `GET /metrics/history?hours=6` | Bearer token | Historial |
+| `POST /services/{name}/start` | Bearer token | Inicia un servicio del config |
+| `POST /services/{name}/stop` | Bearer token | Detiene un servicio del config |

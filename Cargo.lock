@@ -2378,7 +2378,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "monitor-agent"
+name = "monitorAgent"
 version = "0.1.0"
 dependencies = [
  "axum",
@@ -2395,7 +2395,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "monitor-dashboard"
+name = "monitorDashboard"
 version = "0.1.0"
 dependencies = [
  "chrono",

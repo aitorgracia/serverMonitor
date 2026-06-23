@@ -1,5 +1,6 @@
 use reqwest::Client;
 use serde::Deserialize;
+use serde_json::Value;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct ServiceInfo {
@@ -53,5 +54,25 @@ impl AgentClient {
             .await?
             .json::<Vec<Snapshot>>()
             .await
+    }
+
+    pub async fn start_service(&self, name: &str) -> Result<String, reqwest::Error> {
+        let resp = self.client
+            .post(format!("{}/services/{}/start", self.base_url, name))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .send()
+            .await?;
+        let json: Value = resp.json().await?;
+        Ok(json["message"].as_str().unwrap_or("ok").to_string())
+    }
+
+    pub async fn stop_service(&self, name: &str) -> Result<String, reqwest::Error> {
+        let resp = self.client
+            .post(format!("{}/services/{}/stop", self.base_url, name))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .send()
+            .await?;
+        let json: Value = resp.json().await?;
+        Ok(json["message"].as_str().unwrap_or("ok").to_string())
     }
 }
