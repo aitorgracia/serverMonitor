@@ -37,7 +37,6 @@ impl DashboardApp {
             history_hours,
         };
 
-        // Cargar historial al arrancar
         app.fetch_history();
         app
     }
@@ -85,27 +84,42 @@ impl DashboardApp {
 
     fn render_metrics(&self, ui: &mut Ui, snap: &Snapshot) {
         ui.horizontal(|ui| {
+            let group_height = 90.0;
+            let group_width  = 200.0;
+            let total_width  = ui.available_width();
+            let spacing      = (total_width - group_width * 2.0) / 3.0;
+
+            ui.add_space(spacing);
+
             // CPU
-            ui.group(|ui| {
-                ui.set_min_width(160.0);
-                ui.vertical_centered(|ui| {
-                    ui.label(RichText::new("CPU Total").strong());
-                    let color = cpu_color(snap.cpu_total);
-                    ui.label(RichText::new(format!("{:.1}%", snap.cpu_total)).size(28.0).color(color));
+            ui.allocate_ui(egui::vec2(group_width, group_height), |ui| {
+                ui.group(|ui| {
+                    ui.set_min_size(egui::vec2(group_width - 8.0, group_height - 8.0));
+                    ui.vertical_centered(|ui| {
+                        ui.add_space((group_height - 8.0 - 48.0) / 2.0);
+                        ui.label(RichText::new("CPU Total").strong());
+                        let color = cpu_color(snap.cpu_total);
+                        ui.label(RichText::new(format!("{:.1}%", snap.cpu_total)).size(28.0).color(color));
+                    });
                 });
             });
 
+            ui.add_space(spacing);
+
             // RAM
-            ui.group(|ui| {
-                ui.set_min_width(200.0);
-                ui.vertical_centered(|ui| {
-                    ui.label(RichText::new("RAM").strong());
-                    let pct = snap.ram_used_gb / snap.ram_total_gb * 100.0;
-                    let color = cpu_color(pct);
-                    ui.label(RichText::new(
-                        format!("{:.2} / {:.2} GB", snap.ram_used_gb, snap.ram_total_gb)
-                    ).size(20.0).color(color));
-                    ui.label(format!("{:.1}%", pct));
+            ui.allocate_ui(egui::vec2(group_width, group_height), |ui| {
+                ui.group(|ui| {
+                    ui.set_min_size(egui::vec2(group_width - 8.0, group_height - 8.0));
+                    ui.vertical_centered(|ui| {
+                        ui.add_space((group_height - 8.0 - 57.0) / 2.0);
+                        ui.label(RichText::new("RAM").strong());
+                        let pct = snap.ram_used_gb / snap.ram_total_gb * 100.0;
+                        let color = cpu_color(pct);
+                        ui.label(RichText::new(
+                            format!("{:.2} / {:.2} GB", snap.ram_used_gb, snap.ram_total_gb)
+                        ).size(20.0).color(color));
+                        ui.label(format!("{:.1}%", pct));
+                    });
                 });
             });
         });
@@ -130,9 +144,9 @@ impl DashboardApp {
                 for svc in &snap.services {
                     ui.label(&svc.display_name);
                     if svc.running {
-                        ui.label(RichText::new("● activo").color(Color32::GREEN));
+                        ui.label(RichText::new("Activo").color(Color32::GREEN));
                     } else {
-                        ui.label(RichText::new("● caído").color(Color32::RED));
+                        ui.label(RichText::new("Apagado").color(Color32::RED));
                     }
                     ui.label(format!("{:.1}%", svc.cpu_usage));
                     ui.label(format!("{} MB", svc.memory_mb));
@@ -153,10 +167,13 @@ impl DashboardApp {
         // CPU
         ui.add_space(8.0);
         ui.label(RichText::new("CPU (%)").heading());
+        ui.add_space(8.0);
         Plot::new("cpu_plot")
             .height(140.0)
             .include_y(0.0)
             .include_y(100.0)
+            .show_x(false)
+            .show_y(false)
             .show(ui, |plot_ui| {
                 let points: PlotPoints = history.iter()
                     .map(|s| [(s.timestamp as f64 - t0) / 60.0, s.cpu_total as f64])
@@ -167,11 +184,14 @@ impl DashboardApp {
         // RAM
         ui.add_space(4.0);
         ui.label(RichText::new("RAM (GB)").heading());
+        ui.add_space(8.0);
         let ram_max = history.iter().map(|s| s.ram_total_gb).fold(0.0_f32, f32::max);
         Plot::new("ram_plot")
             .height(140.0)
             .include_y(0.0)
             .include_y(ram_max as f64)
+            .show_x(false)
+            .show_y(false)
             .show(ui, |plot_ui| {
                 let points: PlotPoints = history.iter()
                     .map(|s| [(s.timestamp as f64 - t0) / 60.0, s.ram_used_gb as f64])
@@ -185,13 +205,11 @@ impl DashboardApp {
 
 impl eframe::App for DashboardApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Auto-refresco
         if self.last_refresh.elapsed() >= Duration::from_secs(self.refresh_secs) {
             self.fetch_current();
             self.last_refresh = Instant::now();
         }
 
-        // Recargar historial cada minuto
         let history_len = self.history.lock().unwrap().len();
         if history_len == 0 {
             self.fetch_history();
@@ -200,7 +218,6 @@ impl eframe::App for DashboardApp {
         ctx.request_repaint_after(Duration::from_secs(1));
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // Error
             if let Some(err) = self.error.lock().unwrap().as_ref() {
                 ui.colored_label(Color32::RED, format!("⚠ Error: {}", err));
                 ui.separator();
