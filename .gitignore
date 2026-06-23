@@ -1,0 +1,5 @@
+target/
+monitor-agent/config.toml
+monitor-dashboard/config.toml
+*.db
+*.log

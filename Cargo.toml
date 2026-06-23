@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "monitor-agent",
+    "monitor-dashboard",
+]
+resolver = "2"

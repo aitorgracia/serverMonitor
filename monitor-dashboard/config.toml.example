@@ -1,0 +1,6 @@
+ssh_host      = "usuario@tu-servidor.com"
+ssh_key       = "~/.ssh/id_dashboard"
+api_key       = "CHANGE_ME"
+local_port    = 3000
+refresh_secs  = 5
+history_hours = 6
