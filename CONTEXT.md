@@ -4,14 +4,14 @@
 
 Monorepo Rust con dos binarios:
 
-- **monitorAgent** — API REST que corre en el servidor remoto. Recoge métricas del sistema y las sirve por HTTP.
-- **monitorDashboard** — App de escritorio egui que corre en local. Se conecta al agente mediante túnel SSH automático y muestra las métricas en tiempo real.
+- **monitor_agent** — API REST que corre en el servidor remoto. Recoge métricas del sistema y las sirve por HTTP.
+- **monitor_dashboard** — App de escritorio egui que corre en local. Se conecta al agente mediante túnel SSH automático y muestra las métricas en tiempo real.
 
 ## Arquitectura
 
 ```
 [Tu ordenador]                        [Servidor remoto]
-monitorDashboard                     monitorAgent
+monitor_dashboard                     monitor_agent
   - Abre túnel SSH                      - Axum HTTP en :3000
   - Pide /metrics cada 5s               - SQLite para historial
   - Muestra egui con gráficas           - systemctl para estado servicios
@@ -24,7 +24,7 @@ La comunicación es siempre localhost:3000 a través del túnel SSH — el puert
 ```
 serverMonitor/
 ├── Cargo.toml                          # Workspace — compila ambos proyectos
-├── monitorAgent/
+├── monitor_agent/
 │   ├── Cargo.toml
 │   ├── config.toml                     # NO en git — contiene api_key
 │   ├── config.toml.example             # Plantilla pública
@@ -34,7 +34,7 @@ serverMonitor/
 │       ├── db.rs                       # SQLite: snapshots + historial 24h
 │       ├── metrics.rs                  # sysinfo + systemctl para PID/estado
 │       └── routes.rs                   # GET /health /metrics /metrics/history
-├── monitorDashboard/
+├── monitor_dashboard/
 │   ├── Cargo.toml
 │   ├── config.toml                     # NO en git — contiene api_key y ssh_host
 │   ├── config.toml.example
@@ -49,14 +49,14 @@ serverMonitor/
 
 ## Dependencias clave
 
-### monitorAgent
+### monitor_agent
 - `axum 0.7` — HTTP server
 - `sysinfo 0.30` — CPU, RAM, procesos
 - `rusqlite` (bundled) — SQLite embebido
 - `tower-http` — CORS middleware
 - `chrono` — timestamps
 
-### monitorDashboard
+### monitor_dashboard
 - `eframe 0.27` + `egui 0.27` + `egui_plot 0.27` — UI y gráficas
 - `openssh 0.10` — túnel SSH con port-forward
 - `reqwest 0.12` — cliente HTTP
@@ -69,7 +69,7 @@ Doble capa:
 1. **Túnel SSH** — usuario `monitor` con `/usr/sbin/nologin` en el servidor. Solo puede hacer port-forwarding, no abrir shell.
 2. **Bearer token** — todas las rutas protegidas requieren `Authorization: Bearer <api_key>`. La api_key está en `config.toml` de ambos proyectos (misma en los dos).
 
-## Base de datos (monitorAgent)
+## Base de datos (monitor_agent)
 
 ```sql
 snapshots (id, timestamp, cpu_total, ram_used_gb, ram_total_gb)
@@ -80,7 +80,7 @@ Se guarda un snapshot cada `poll_interval_secs` (default 30s). Se purgan automá
 
 ## Configuración
 
-### monitorAgent/config.toml
+### monitor_agent/config.toml
 ```toml
 poll_interval_secs = 30
 history_hours = 24
@@ -95,7 +95,7 @@ name = "botDieta.service"
 display_name = "Bot Dieta"
 ```
 
-### monitorDashboard/config.toml
+### monitor_dashboard/config.toml
 ```toml
 ssh_host      = "monitor@ip-del-servidor"
 ssh_key       = "~/.ssh/id_dashboard"
@@ -110,9 +110,9 @@ history_hours = 6
 - OS: Ubuntu 22.04 aarch64
 - Usuario agente: `ubuntu`
 - Usuario túnel SSH: `monitor` (nologin)
-- Servicio: `monitorAgent.service` con `Restart=always`
-- Binario en: `/home/ubuntu/serverMonitor/target/release/monitorAgent`
-- Working dir: `/home/ubuntu/serverMonitor/monitorAgent`
+- Servicio: `monitor_agent.service` con `Restart=always`
+- Binario en: `/home/ubuntu/serverMonitor/target/release/monitor_agent`
+- Working dir: `/home/ubuntu/serverMonitor/monitor_agent`
 
 ## Convenciones
 

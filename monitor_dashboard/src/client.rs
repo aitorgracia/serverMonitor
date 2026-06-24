@@ -88,3 +88,64 @@ impl AgentClient {
         Ok(json["message"].as_str().unwrap_or("ok").to_string())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_snapshot() {
+        let json = r#"
+        {
+            "timestamp": 1719000000,
+            "cpu_total": 45.2,
+            "ram_used_gb": 4.5,
+            "ram_total_gb": 16.0,
+            "services": [
+                {
+                    "name": "ts.service",
+                    "display_name": "TeamSpeak",
+                    "running": true,
+                    "cpu_usage": 2.3,
+                    "memory_mb": 128
+                },
+                {
+                    "name": "bot.service",
+                    "display_name": "Bot",
+                    "running": false,
+                    "cpu_usage": 0.0,
+                    "memory_mb": 0
+                }
+            ]
+        }
+        "#;
+        let snapshot: Snapshot = serde_json::from_str(json).unwrap();
+        assert_eq!(snapshot.timestamp, 1719000000);
+        assert_eq!(snapshot.cpu_total, 45.2);
+        assert_eq!(snapshot.ram_used_gb, 4.5);
+        assert_eq!(snapshot.ram_total_gb, 16.0);
+        assert_eq!(snapshot.services.len(), 2);
+        assert!(snapshot.services[0].running);
+        assert!(!snapshot.services[1].running);
+        assert_eq!(snapshot.services[0].name, "ts.service");
+        assert_eq!(snapshot.services[1].display_name, "Bot");
+    }
+
+    #[test]
+    fn test_deserialize_service_info() {
+        let json = r#"
+        {
+            "name": "test.service",
+            "display_name": "Test",
+            "running": true,
+            "cpu_usage": 5.1,
+            "memory_mb": 256
+        }
+        "#;
+        let svc: ServiceInfo = serde_json::from_str(json).unwrap();
+        assert_eq!(svc.name, "test.service");
+        assert!(svc.running);
+        assert_eq!(svc.cpu_usage, 5.1);
+        assert_eq!(svc.memory_mb, 256);
+    }
+}

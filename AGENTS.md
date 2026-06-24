@@ -11,7 +11,7 @@ Lee CONTEXT.md antes de hacer cualquier cambio. Contiene la arquitectura complet
 - Antes de añadir una dependencia nueva, comprueba si ya hay una existente que cubra el caso.
 - Mantén la separación de capas: SQL en `db.rs`, HTTP en `routes.rs`, UI en `app.rs`, lógica en `metrics.rs`.
 
-## Reglas del agente (monitorAgent)
+## Reglas del agente (monitor_agent)
 
 - Todos los endpoints nuevos van en `routes.rs` y deben pasar por `auth_middleware`.
 - El único endpoint sin auth es `GET /health`.
@@ -19,7 +19,7 @@ Lee CONTEXT.md antes de hacer cualquier cambio. Contiene la arquitectura complet
 - Nuevas tablas o cambios de esquema van en `db::init_db()` con `CREATE TABLE IF NOT EXISTS`.
 - Los snapshots se purgan automáticamente — no añadas lógica de limpieza fuera de `db::purge_old()`.
 
-## Reglas del dashboard (monitorDashboard)
+## Reglas del dashboard (monitor_dashboard)
 
 - Las llamadas HTTP siempre van en `client.rs`, nunca directamente en `app.rs`.
 - El túnel SSH se gestiona en `tunnel.rs` — no lo toques desde otros módulos salvo `main.rs`.
@@ -29,7 +29,7 @@ Lee CONTEXT.md antes de hacer cualquier cambio. Contiene la arquitectura complet
 
 ## Cómo añadir un servicio nuevo
 
-Solo editar `monitorAgent/config.toml` (no en git) y reiniciar el agente. No requiere cambios en el código.
+Solo editar `monitor_agent/config.toml` (no en git) y reiniciar el agente. No requiere cambios en el código.
 
 ## Cómo añadir un endpoint nuevo
 
@@ -46,10 +46,10 @@ Solo editar `monitorAgent/config.toml` (no en git) y reiniciar el agente. No req
 cargo build --release
 
 # Solo el agente
-cargo build --release -p monitorAgent
+cargo build --release -p monitor_agent
 
 # Solo el dashboard
-cargo build --release -p monitorDashboard
+cargo build --release -p monitor_dashboard
 ```
 
 ## Deploy en el servidor
@@ -59,5 +59,5 @@ cargo build --release -p monitorDashboard
 cd ~/serverMonitor
 git pull
 cargo build --release
-sudo systemctl restart monitorAgent
+sudo systemctl restart monitor_agent
 ```

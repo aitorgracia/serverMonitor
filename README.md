@@ -5,26 +5,34 @@ Sistema de monitorización con agente Rust en el servidor y dashboard egui en lo
 ## Estructura
 
 ```
-monitor/
-├── monitor-agent/           # Corre en el servidor
+serverMonitor/
+├── monitor_agent/             # Corre en el servidor
 │   ├── src/
 │   │   ├── main.rs
+│   │   ├── lib.rs
 │   │   ├── config.rs
 │   │   ├── db.rs
 │   │   ├── metrics.rs
 │   │   └── routes.rs
+│   ├── tests/
+│   │   └── api_test.rs
 │   ├── Cargo.toml
 │   └── config.toml.example
-├── monitor-dashboard/       # Corre en tu ordenador
+├── monitor_dashboard/         # Corre en tu ordenador
 │   ├── src/
 │   │   ├── main.rs
+│   │   ├── lib.rs
 │   │   ├── app.rs
 │   │   ├── client.rs
 │   │   ├── tunnel.rs
 │   │   └── config.rs
 │   ├── Cargo.toml
 │   └── config.toml.example
-├── Cargo.toml               # Workspace
+├── CONTEXT.md                # Arquitectura y convenciones del proyecto
+├── AGENTS.md                 # Reglas para OpenCode
+├── API.md                    # Documentación de la API REST
+├── TESTING.md                # Estrategia y ejecución de tests
+├── Cargo.toml                # Workspace
 └── .gitignore
 ```
 
@@ -46,11 +54,11 @@ restrict,port-forwarding ssh-ed25519 AAAA...tu_clave id_dashboard
 ### 2. Agente (servidor)
 
 ```bash
-cd monitor-agent
+cd monitor_agent
 cp config.toml.example config.toml
 nano config.toml   # edita api_key y servicios
 cargo build --release
-./target/release/monitor-agent
+./target/release/monitor_agent
 ```
 
 Como servicio systemd:
@@ -60,8 +68,8 @@ Description=Monitor Agent
 After=network.target
 
 [Service]
-ExecStart=/ruta/monitor-agent/target/release/monitor-agent
-WorkingDirectory=/ruta/monitor-agent
+ExecStart=/ruta/monitor_agent/target/release/monitor_agent
+WorkingDirectory=/ruta/monitor_agent
 Restart=always
 
 [Install]
@@ -71,7 +79,7 @@ WantedBy=multi-user.target
 ### 3. Dashboard (tu ordenador)
 
 ```bash
-cd monitor-dashboard
+cd monitor_dashboard
 cp config.toml.example config.toml
 nano config.toml   # edita ssh_host y api_key (misma que el agente)
 cargo run --release
@@ -79,7 +87,7 @@ cargo run --release
 
 ## Añadir servicios
 
-Edita `monitor-agent/config.toml` y reinicia el agente — sin recompilar:
+Edita `monitor_agent/config.toml` y reinicia el agente — sin recompilar:
 
 ```toml
 [[services]]
@@ -96,3 +104,21 @@ display_name = "Bot Dieta"
 | `GET /metrics/history?hours=6` | Bearer token | Historial |
 | `POST /services/{name}/start` | Bearer token | Inicia un servicio del config |
 | `POST /services/{name}/stop` | Bearer token | Detiene un servicio del config |
+
+Para detalles de request/response, ver [`API.md`](API.md).
+
+## Tests
+
+```bash
+cargo test                 # Todos los tests
+cargo test -p monitor_agent # Solo el agente
+```
+
+Ver [`TESTING.md`](TESTING.md) para la estrategia detallada.
+
+## Documentación adicional
+
+- [`CONTEXT.md`](CONTEXT.md) — Arquitectura, dependencias, BD, configuración y convenciones del proyecto
+- [`AGENTS.md`](AGENTS.md) — Reglas operativas para OpenCode (guías de build, deploy, y modificación)
+- [`API.md`](API.md) — Documentación completa de la API REST con schemas JSON
+- [`TESTING.md`](TESTING.md) — Estrategia de tests, cobertura y cómo ejecutarlos
