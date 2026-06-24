@@ -13,7 +13,7 @@ fn main() {
     let handle  = runtime.handle().clone();
 
     println!("Conectando túnel SSH a {}...", cfg.ssh_host);
-    let tunnel = runtime.block_on(
+    let _tunnel = runtime.block_on(
         tunnel::Tunnel::connect(&cfg.ssh_host, &cfg.ssh_key, cfg.local_port)
     ).expect("No se pudo abrir el túnel SSH");
     println!("Túnel activo en localhost:{}", cfg.local_port);

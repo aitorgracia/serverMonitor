@@ -60,9 +60,11 @@ impl DashboardApp {
 
         self.runtime.spawn(async move {
             match client.current().await {
-                Ok(snap) => { *current.lock().unwrap() = Some(snap); }
-                Err(e)   => {
-                    eprintln!("[dashboard] Error en fetch_current: {}", e);
+                Ok(snap) => {
+                    *current.lock().unwrap() = Some(snap);
+                    *error.lock().unwrap() = None;
+                }
+                Err(e) => {
                     *error.lock().unwrap() = Some(e);
                 }
             }
@@ -77,9 +79,11 @@ impl DashboardApp {
 
         self.runtime.spawn(async move {
             match client.history(hours).await {
-                Ok(snaps) => { *history.lock().unwrap() = snaps; }
-                Err(e)    => {
-                    eprintln!("[dashboard] Error en fetch_history: {}", e);
+                Ok(snaps) => {
+                    *history.lock().unwrap() = snaps;
+                    *error.lock().unwrap() = None;
+                }
+                Err(e) => {
                     *error.lock().unwrap() = Some(e);
                 }
             }

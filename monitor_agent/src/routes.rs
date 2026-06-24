@@ -292,10 +292,10 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/test", post(test_post))
         .route("/metrics", get(get_current))
         .route("/metrics/history", get(get_history_handler))
-        .route("/foo/{x}", post(foo_param))
+        .route("/foo/:x", post(foo_param))
         .route("/bar/y/start", post(bar_start))
-        .route("/services/{name}/start", post(service_start))
-        .route("/services/{name}/stop",  post(service_stop))
+        .route("/services/:name/start", post(service_start))
+        .route("/services/:name/stop",  post(service_stop))
         .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
         .with_state(state)
 }
