@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::net::SocketAddr;
 use axum::Router;
 use tokio::sync::Mutex;
 use tower_http::cors::CorsLayer;
@@ -9,6 +10,18 @@ use monitor_agent::db;
 use monitor_agent::metrics;
 use monitor_agent::routes;
 use monitor_agent::AppState;
+
+fn bind_reuse(addr: SocketAddr) -> tokio::net::TcpListener {
+    let socket = socket2::Socket::new(
+        socket2::Domain::IPV4,
+        socket2::Type::STREAM,
+        Some(socket2::Protocol::TCP),
+    ).expect("No se pudo crear el socket");
+    socket.set_reuse_address(true).expect("No se pudo setear SO_REUSEADDR");
+    socket.bind(&addr.into()).expect(&format!("No se pudo bindear al puerto {}", addr.port()));
+    socket.listen(1024).expect("No se pudo poner el socket en modo listen");
+    tokio::net::TcpListener::from_std(socket.into()).expect("No se pudo convertir a TcpListener tokio")
+}
 
 #[tokio::main]
 async fn main() {
@@ -36,9 +49,9 @@ async fn main() {
         .merge(routes::router(state.clone()))
         .layer(CorsLayer::permissive());
 
-    let addr = "0.0.0.0:3000";
+    let addr: SocketAddr = "0.0.0.0:3000".parse().expect("Dirección inválida");
     tracing::info!("Agente escuchando en http://{}/metrics", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = bind_reuse(addr);
     axum::serve(listener, app).await.unwrap();
 }
