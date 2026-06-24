@@ -117,13 +117,10 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "Requiere systemd/sudo — solo en servidor real con -- --ignored"]
     fn test_start_service_known_service() {
         let config = test_config();
-        // This will try to run sudo — in CI it might fail with "sudo: not found"
-        // but the important thing is it passes the config check
         let result = start_service(&config, "my.service");
-        // We don't assert success/failure here since it depends on systemctl/sudo
-        // Just verify the type is Result
         assert!(result.is_ok() || result.is_err());
     }
 

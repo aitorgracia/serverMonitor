@@ -53,7 +53,27 @@ cargo tarpaulin --ignore-tests
 
 Los tests de integración del agente usan `tower::ServiceExt::oneshot` para enviar requests directamente al router sin necesidad de levantar un servidor HTTP.
 
+## Tests en producción
+
+Se puede ejecutar la mayoría de tests en el servidor sin riesgos. Todos usan SQLite en memoria y no modifican el sistema salvo:
+
+| Test | Seguro en producción | Motivo |
+|---|---|---|
+| `metrics::test_start_service_known_service` | Solo con `--ignored` | Ejecuta `sudo systemctl start` |
+| `metrics::test_collect_returns_data` | Sí (solo lectura) | `systemctl show` + sysinfo |
+| `routes::test_metrics_with_valid_auth_returns_200` | Sí (solo lectura) | Llama a `collect()` internamente |
+| Todos los de `db`, `config` | Sí | Solo SQLite en memoria y parseo |
+
+```bash
+# En el servidor — solo tests seguros (sin sudo systemctl start)
+cargo test
+
+# Tests completos (incluye los que tocan systemd)
+cargo test -- --ignored
+```
+
+Los tests marcados con `#[ignore]` requieren systemd funcional y permisos sudo. No se ejecutan con `cargo test` a menos que se pase `-- --ignored`.
+
 ## Notas
 
-- Los tests de `metrics.rs` llaman a `systemctl` y `sudo`. En entornos sin systemd (CI, contenedores), `get_service_pid` devuelve `None` y `start_service`/`stop_service` fallan con error de comando, pero los tests verifican que la validación de configuración funciona correctamente antes de ejecutar el comando.
 - Todos los tests de BD usan `rusqlite::Connection::open_in_memory()` para no depender del sistema de archivos.

@@ -55,9 +55,6 @@ cargo build --release -p monitor_dashboard
 ## Deploy en el servidor
 
 ```bash
-# En el servidor
-cd ~/serverMonitor
-git pull
-cargo build --release
-sudo systemctl restart monitor_agent
+# En el servidor — actualiza, compila y reinicia el agente
+./deploy.sh
 ```
